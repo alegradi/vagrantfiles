@@ -1,0 +1,57 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+BOX_IMAGE = "centos/8"
+
+Vagrant.configure("2") do |config|
+  config.vm.define "node1-centos8" do |node1|
+    node1.vm.box = BOX_IMAGE
+    node1.vm.hostname = "node1-centos8"
+    node1.vm.network :private_network, ip: '192.168.0.42'
+    ## Simulating crossover with the two networks below
+    node1.vm.network :private_network, ip: '10.1.0.11'
+    node1.vm.network :private_network, ip: '10.2.0.11'
+    
+    ## Add our own pubkey to be able to use Ansible on the VMs
+    node1.vm.provision "shell" do |s|
+      ssh_pub_key = File.readlines("#{Dir.home}/.ssh/your_ssh_key.pub").first.strip  ## Update with your SSH pubkey
+      s.inline = <<-SHELL
+        echo #{ssh_pub_key} >> /home/vagrant/.ssh/authorized_keys
+      SHELL
+    end
+
+    ## Add extra disk for DRBD
+    node1.vm.provider :virtualbox do |vb|
+      file_to_disk1 = '#{Dir.home}/location_to_store_disk/disk1.vdi'  ## Update with disk location
+      unless File.exist?(file_to_disk1)
+        vb.customize ['createhd', '--filename', file_to_disk1, '--size', 4 * 1024]
+      end
+      vb.customize ['storageattach', :id, '--storagectl', 'IDE', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk1]
+    end
+  end
+  config.vm.define "node2-centos8" do |node2|
+    node2.vm.box = BOX_IMAGE
+    node2.vm.hostname = "node2-centos8"
+    node2.vm.network :private_network, ip: '192.168.0.43'
+    ## Simulating crossover with the two networks below
+    node2.vm.network :private_network, ip: '10.1.0.12'
+    node2.vm.network :private_network, ip: '10.2.0.12'
+    
+    ## Add our own pubkey to be able to use Ansible on the VMs
+    node2.vm.provision "shell" do |s|
+      ssh_pub_key = File.readlines("#{Dir.home}/.ssh/your_ssh_key.pub").first.strip  ## Update with your SSH pubkey
+      s.inline = <<-SHELL
+        echo #{ssh_pub_key} >> /home/vagrant/.ssh/authorized_keys
+      SHELL
+    end
+
+    ## Add extra disk for DRBD
+    node2.vm.provider :virtualbox do |vb|
+      file_to_disk2 = '#{Dir.home}/location_to_store_disk/disk2.vdi'  ## Update with disk location
+      unless File.exist?(file_to_disk2)
+        vb.customize ['createhd', '--filename', file_to_disk2, '--size', 4 * 1024]
+      end
+      vb.customize ['storageattach', :id, '--storagectl', 'IDE', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', file_to_disk2]
+    end
+  end
+end

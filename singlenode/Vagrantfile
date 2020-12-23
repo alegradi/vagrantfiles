@@ -1,0 +1,20 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+BOX_IMAGE = "generic/ubuntu2004"
+
+Vagrant.configure("2") do |config|
+  config.vm.define "ubuntu20-vm1" do |node|
+    node.vm.box = BOX_IMAGE
+    node.vm.hostname = "ubuntu20-vm1"
+    node.vm.network :private_network, ip: '192.168.0.21'
+    
+    ## Add our own pubkey to be able to use Ansible on the VMs
+    node.vm.provision "shell" do |s|
+      ssh_pub_key = File.readlines("#{Dir.home}/.ssh/your_ssh_key.pub").first.strip  ## Update with your SSH pubkey
+      s.inline = <<-SHELL
+        echo #{ssh_pub_key} >> /home/vagrant/.ssh/authorized_keys
+      SHELL
+    end
+  end
+end
